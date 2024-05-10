@@ -16,17 +16,41 @@ class Grid:
         self.score = 0
         
         pg.init()
-        self.myfont = pg.font.SysFont('Arial', 30)
-        self.screen = pg.display.set_mode((400, 400))
+        self.myfont = pg.font.SysFont('Arial', 40)
+        self.screen_width = 400
+        self.screen_height = 400
+        self.cell_size = self.screen_width // self.size
+        self.padding = 10
+        self.colors = {
+            0: (205, 193, 180),
+            2: (238, 228, 218),
+            4: (237, 224, 200),
+            8: (242, 177, 121),
+            16: (245, 149, 99),
+            32: (246, 124, 95),
+            64: (246, 94, 59),
+            128: (237, 207, 114),
+            256: (237, 204, 97),
+            512: (237, 200, 80),
+            1024: (237, 197, 63),
+            2048: (237, 194, 46)
+        }
+        self.screen = pg.display.set_mode((self.screen_width, self.screen_height))
         pg.display.set_caption("2048")
 
     def render(self):
-        self.screen.fill((255, 255, 255))
+        self.screen.fill((187, 173, 160))  # Background color
         for i in range(self.size):
             for j in range(self.size):
-                pg.draw.rect(self.screen, (0, 0, 0), (i * 100, j * 100, 100, 100), 2)
-                text = self.myfont.render(str(self.grid[i][j]), False, (0, 0, 0))
-                self.screen.blit(text, (i * 100 + 30, j * 100 + 30))
+                value = self.grid[i][j]
+                color = self.colors.get(value, (255, 255, 255))  # Default to white for unknown values
+                pg.draw.rect(self.screen, color, (j * self.cell_size + self.padding, i * self.cell_size + self.padding,
+                                                  self.cell_size - 2 * self.padding, self.cell_size - 2 * self.padding))
+                if value != 0:
+                    text = self.myfont.render(str(value), True, (0, 0, 0))  # Black text
+                    text_rect = text.get_rect(center=(j * self.cell_size + self.cell_size / 2,
+                                                       i * self.cell_size + self.cell_size / 2))
+                    self.screen.blit(text, text_rect)
         pg.display.flip()
             
             
