@@ -2,6 +2,9 @@ import random
 import os
 import msvcrt
 import copy
+import time
+from collections import Counter
+import csv
 
 class Grid:
     def __init__(self, size):
@@ -10,9 +13,10 @@ class Grid:
         self.grid[random.randint(0, size - 1)][random.randint(0, size - 1)] = 2
 
         self.grid2 = copy.deepcopy(self.grid)
-        self.next_score = {'w':0,'s':0,'a':0,'d':0}
+        self.next_score = {'w':0,'a':0,'d':0,'s':0}
         self.flag = 0
         self.score = 0
+        self.move_set = []
 
     def __str__(self):
         return '\n'.join(['\t|\t'.join([str(cell) for cell in row]) for row in self.grid])
@@ -26,9 +30,13 @@ class Grid:
     def no_moves(self):
         if self.next_move_predictor()[1] == 0:
             return True 
+        
+    # def find_highest(self):
+
+    #     return index
     
     def next_move_predictor(self):
-        self.next_score = {'w':0,'s':0,'a':0,'d':0}
+        self.next_score = {'w':0,'a':0,'d':0,'s':0}
         # print('Copying for w')
         self.grid2 = copy.deepcopy(self.grid)
         # Move Up
@@ -123,6 +131,9 @@ class Grid:
                     self.grid2[i][j] = 0
 
         print("Final predictions: ",self.next_score)
+        # self.next_score['w']*=1.35
+        # self.next_score['a']*=1.2
+        # self.next_score['d']*=1.1
         return max(self.next_score.items(), key=lambda x: x[1])
 
     
@@ -139,6 +150,7 @@ class Grid:
                 print("\nTOTAL SCORE: ",self.score,"\n")
                 print(self)
                 if self.flag and self.no_moves():
+                    print("\nMoveSet: ",self.move_set,"\n",Counter(self.move_set))
                     print("\n\nX---X---X  GAME OVER  X---X---X\n\n")
                     break
                 os.system("cls")
@@ -158,6 +170,7 @@ class Grid:
 
             print("\n\nEnter direction: ")
             direction = best_move
+            self.move_set.append(direction)
             print(direction)
 
             if direction == "w":
@@ -169,6 +182,8 @@ class Grid:
             elif direction == "d":
                 self.move_right()
             self.generate_new_cell()
+            # time.sleep(0.3)
+        
     
     def move_up(self):
         for j in range(self.size):
@@ -243,5 +258,23 @@ class Grid:
             
 
 if __name__ == "__main__":
-    grid = Grid(4)
-    grid.run()
+
+    rows = []
+
+    filename = "2048-tester.csv"
+    # fields = [['Game Number','Score','Move Counter','Moves Performed']]
+
+    for i in range(10):
+        grid = Grid(4)
+        grid.run()
+
+        row_i = [i+1,grid.score,Counter(grid.move_set),grid.move_set]
+        rows.append(row_i)
+
+    with open(filename, 'w') as csvfile:
+        csvwriter = csv.writer(csvfile)
+
+        # csvwriter.writerows(fields)
+        csvwriter.writerows(rows)
+
+    print(rows)
