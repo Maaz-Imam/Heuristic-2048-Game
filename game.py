@@ -1,8 +1,4 @@
-import random
 import os
-import msvcrt
-import copy
-
 from grid import Grid
 
 class Solver:
@@ -11,116 +7,69 @@ class Solver:
         self.env = Grid(size)
         
     def no_moves(self):
+        print("--> ", self.next_move_predictor())
         if self.next_move_predictor()[1] == 0:
             return True 
-        
+    
     def next_move_predictor(self):
-        self.next_score = {'w':0,'s':0,'a':0,'d':0}
-        self.grid2 = copy.deepcopy(self.env.grid)
+        directions = ['w', 's', 'a', 'd']
+        next_score = {'s': 0, 'd': 0, 'a': 0, 'w': 0}
 
-        for j in range(self.size):
-            for i in range(1, self.size):
-                if self.grid2[i][j] == 0:
-                    continue
-                x = i
-                while x > 0 and self.grid2[x - 1][j] == 0:
-                    x -= 1
-                if x == 0 or (self.grid2[x - 1][j] != self.grid2[i][j]):
-                    self.grid2[x][j] = self.grid2[i][j]
-                    if x != i:
-                        self.grid2[i][j] = 0
-                    self.next_score['w'] =  max(self.next_score['w'],0) # adding to next score
-                else:
-                    self.grid2[x - 1][j] *= 2
-                    self.next_score['w'] = max(self.next_score['w'],self.grid2[x - 1][j]) # adding to next score
-                    self.grid2[i][j] = 0
-        
+        for direction in directions:
+            grid_copy = [row[:] for row in self.env.grid]
 
-        self.grid2 = copy.deepcopy(self.env.grid)
-        for j in range(self.size):
-            for i in range(self.size - 2, -1, -1):
-                if self.grid2[i][j] == 0:
-                    continue
-                x = i
-                while x < self.size - 1 and self.grid2[x + 1][j] == 0:
-                    x += 1
-                if x == self.size - 1 or (self.grid2[x + 1][j] != self.grid2[i][j]):
-                    self.grid2[x][j] = self.grid2[i][j]
-                    if x != i:
-                        self.grid2[i][j] = 0
-                    self.next_score['s'] =  max(self.next_score['s'],0) # adding to next score
-                else:
-                    self.grid2[x + 1][j] *= 2
-                    self.next_score['s'] =  max(self.next_score['s'],self.grid2[x + 1][j]) # adding to next score
-                    self.grid2[i][j] = 0
-            
+            if direction == 'w':
+                self.env.move_up(grid_copy)
+            elif direction == 's':
+                self.env.move_down(grid_copy)
+            elif direction == 'a':
+                self.env.move_left(grid_copy)
+            elif direction == 'd':
+                self.env.move_right(grid_copy)
 
-        self.grid2 = copy.deepcopy(self.env.grid)
-        for j in range(self.size):
-            for i in range(self.size):
-                if self.grid2[i][j] == 0:
-                    continue
-                x = j
-                while x > 0 and self.grid2[i][x - 1] == 0:
-                    x -= 1
-                if x == 0 or (self.grid2[i][x - 1] != self.grid2[i][j]):
-                    self.grid2[i][x] = self.grid2[i][j]
-                    if x != j:
-                        self.grid2[i][j] = 0
-                    self.next_score['a'] =  max(self.next_score['a'],0) # adding to next score
-                else:
-                    self.grid2[i][x - 1] *= 2
-                    self.next_score['a'] =  max(self.next_score['a'],self.grid2[i][x - 1]) # adding to next score
-                    self.grid2[i][j] = 0
+            score = self.calculate_score(grid_copy)
+            next_score[direction] = score
+
+        print("Final predictions:", next_score)
+        return max(next_score.items(), key=lambda x: x[1])
     
-        self.grid2 = copy.deepcopy(self.env.grid)
-        for j in range(self.size):
-            for i in range(self.size - 1, -1, -1):
-                if self.grid2[i][j] == 0:
-                    continue
-                x = j
-                while x < self.size - 1 and self.grid2[i][x + 1] == 0:
-                    x += 1
-                if x == self.size - 1 or (self.grid2[i][x + 1] != self.grid2[i][j]):
-                    self.grid2[i][x] = self.grid2[i][j]
-                    if x != j:
-                        self.grid2[i][j] = 0
-                    self.next_score['d'] =  max(self.next_score['d'],0) # adding to next score
-                else:
-                    self.grid2[i][x + 1] *= 2
-                    self.next_score['d'] =  max(self.next_score['d'],self.grid2[i][x + 1]) # adding to next score
-                    self.grid2[i][j] = 0
+    def calculate_score(self, grid):
+        score = 0
+        for i in range(self.size):
+            for j in range(self.size):
+                score += grid[i][j] * (self.size - i) * (self.size - j)
 
-        print("Final predictions: ",self.next_score)
-        return max(self.next_score.items(), key=lambda x: x[1])
+        # # Add heuristic for snake pattern
+        snake_score = self.snake_pattern_score(grid)
+        score += snake_score
 
-    
+        return score
+
+    def snake_pattern_score(self, grid):
+        snake_score = 0
+        for i in range(self.size):
+            if i % 2 != 0:
+                for j in range(self.size):
+                    snake_score += grid[i][j]
+            else:
+                for j in range(self.size - 1, -1, -1):
+                    snake_score += grid[i][j]
+        return snake_score
+
     def run(self):
         while True:
-            os.system("cls")
-            if self.env.is_full():
-                print("\nTOTAL SCORE: ",self.env.score,"\n")
-                print(self.env.render())
-                if self.env.flag and self.no_moves():
-                    print("\n\nX---X---X  GAME OVER  X---X---X\n\n")
-                    input()
-                    break
-                os.system("cls")
-
+            # os.system("cls")
             
-            print("\nTOTAL SCORE: ",self.env.score,"\n")
-            print(self.env.render())
-
             best_move = ''
-            
+
             if self.env.flag == 1:
                 print('\n\nGoing to predict next move')
                 best_move, best_score = self.next_move_predictor()
 
-                print("Next move should be: ",best_move,"\nWith a score of: ",best_score)
+                print("Next move should be:", best_move, "\nWith a score of:", best_score)
             self.env.flag = 1
 
-            print("\n\nEnter direction: ")
+            print("\n\nEnter direction:")
             direction = best_move
             print(direction)
 
@@ -131,8 +80,20 @@ class Solver:
             elif direction == "a":
                 self.env.move_left()
             elif direction == "d":
-                self.emv.move_right()
+                self.env.move_right()
             self.env.generate_new_cell()
+            
+            if self.env.is_full():
+                print("\nTOTAL SCORE:", self.env.score, "\n")
+                print(self.env.render())
+                if self.env.flag and self.no_moves():
+                    print("\n\nX---X---X  GAME OVER  X---X---X\n\n")
+                    break
+            # os.system("cls")
+
+            print("\nTOTAL SCORE:", self.env.score, "\n")
+            self.env.render()
+
     
 
 if __name__ == "__main__":
