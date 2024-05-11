@@ -61,17 +61,16 @@ class Grid:
     
     def is_full(self):
         # check if there are adjacent tiles of same value
-        # for i in range(self.size):
-        #     for j in range(self.size):
-        #         if self.grid[i][j] == 0:
-        #             return False
-        #         if i > 0 and self.grid[i][j] == self.grid[i - 1][j]:
-        #             return False
-        #         if j > 0 and self.grid[i][j] == self.grid[i][j - 1]:
-        #             return False
-        # print('-')
-        # return True
-        return all([cell != 0 for row in self.grid for cell in row])
+        for i in range(self.size):
+            for j in range(self.size):
+                if self.grid[i][j] == 0:
+                    return False
+                if i > 0 and self.grid[i][j] == self.grid[i - 1][j]:
+                    return False
+                if j > 0 and self.grid[i][j] == self.grid[i][j - 1]:
+                    return False
+        return True
+        # return all([cell != 0 for row in self.grid for cell in row])
     
 
     def generate_new_cell(self):
@@ -196,6 +195,16 @@ class Grid:
                     grid[i][x + 1] *= 2
                     self.score += grid[i][x + 1] # adding to total score
                     grid[i][j] = 0
+        
+    def action(self, direction):
+        if direction == 'w':
+            self.move_up()
+        elif direction == 's':
+            self.move_down()
+        elif direction == 'a':
+            self.move_left()
+        elif direction == 'd':
+            self.move_right()
             
 
 if __name__ == "__main__":
