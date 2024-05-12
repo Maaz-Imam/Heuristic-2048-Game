@@ -16,7 +16,7 @@ class Grid:
         self.score = 0
         
         pg.init()
-        self.myfont = pg.font.SysFont('Arial', 40)
+        self.myfont = pg.font.SysFont('Arial', 30)
         self.screen_width = 400
         self.screen_height = 400
         self.cell_size = self.screen_width // self.size
@@ -40,10 +40,11 @@ class Grid:
 
     def render(self):
         self.screen.fill((187, 173, 160))  # Background color
+        self.handle_events()
         for i in range(self.size):
             for j in range(self.size):
                 value = self.grid[i][j]
-                color = self.colors.get(value, (10, 10, 10))  # Default to {} for unknown values
+                color = self.colors.get(value, (100, 105, 100))  # Default to gray for unknown values
                 pg.draw.rect(self.screen, color, (j * self.cell_size + self.padding, i * self.cell_size + self.padding,
                                                   self.cell_size - 2 * self.padding, self.cell_size - 2 * self.padding))
                 if value != 0:
@@ -52,8 +53,15 @@ class Grid:
                                                        i * self.cell_size + self.cell_size / 2))
                     self.screen.blit(text, text_rect)
         pg.display.flip()
-            
-            
+        
+        
+
+    def handle_events(self):
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                quit()
+    
         # return '\n'.join(['\t|\t'.join([str(cell) for cell in row]) for row in self.grid])
 
     def is_safe(self, x, y):
@@ -61,17 +69,16 @@ class Grid:
     
     def is_full(self):
         # check if there are adjacent tiles of same value
-        for i in range(self.size):
-            for j in range(self.size):
-                if self.grid[i][j] == 0:
-                    return False
-                if i > 0 and self.grid[i][j] == self.grid[i - 1][j]:
-                    return False
-                if j > 0 and self.grid[i][j] == self.grid[i][j - 1]:
-                    return False
+        if self.move_up(copy.copy(self.grid)) or self.move_down(copy.copy(self.grid)) or self.move_left(copy.copy(self.grid)) or self.move_right(copy.copy(self.grid)):
+            return False
+        print("-----")
         return True
         # return all([cell != 0 for row in self.grid for cell in row])
     
+    def reset(self):
+        self.grid = [[0 for _ in range(self.size)] for _ in range(self.size)]
+        self.grid[random.randint(0, self.size - 1)][random.randint(0, self.size - 1)] = 2
+        self.score = 0
 
     def generate_new_cell(self):
         x, y = random.randint(0, self.size - 1), random.randint(0, self.size - 1)
@@ -79,9 +86,25 @@ class Grid:
             x, y = random.randint(0, self.size - 1), random.randint(0, self.size - 1)
         self.grid[x][y] = 2 if random.random() < 0.9 else 4
     
+    def pygame_input(self):
+        while True:
+            for event in pg.event.get():
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_UP:
+                        return "w"
+                    elif event.key == pg.K_DOWN:
+                        return "s"
+                    elif event.key == pg.K_LEFT:
+                        return "a"
+                    elif event.key == pg.K_RIGHT:
+                        return "d"
+             
     def run(self):
+        
         while True:
             os.system("cls")
+            self.handle_events()
+            self.render()
             if self.is_full():
                 print("\nTOTAL SCORE: ",self.score,"\n")
                 print(self)
@@ -94,19 +117,8 @@ class Grid:
             print("\nTOTAL SCORE: ",self.score,"\n")
             print(self)
 
-            best_move = ''
-            print("d")
-            if self.flag == 1:
-                print('\n\nGoing to predict next move')
-                best_move, best_score = self.next_move_predictor()
 
-                print("Next move should be: ",best_move,"\nWith a score of: ",best_score)
-            self.flag = 1
-
-            print("\n\nEnter direction: ")
-            direction = best_move
-            print(direction)
-
+            direction = self.pygame_input()
             if direction == "w":
                 self.move_up()
             elif direction == "s":
@@ -115,11 +127,13 @@ class Grid:
                 self.move_left()
             elif direction == "d":
                 self.move_right()
+                   
             self.generate_new_cell()
     
     def move_up(self, grid = None):
         if grid is None:
             grid = self.grid
+        moved = False
         for j in range(self.size):
             for i in range(1, self.size):
                 if self.grid[i][j] == 0:
@@ -131,15 +145,18 @@ class Grid:
                     grid[x][j] = grid[i][j]
                     if x != i:
                         grid[i][j] = 0
-                    # grid[i][j] = 0
+                        moved = True
                 else:
                     grid[x - 1][j] *= 2
                     self.score += grid[x - 1][j] # adding to total score
                     grid[i][j] = 0
+                    moved = True
+        return moved
                     
     def move_down(self, grid = None):
         if grid is None:
             grid = self.grid
+        moved = False
         for j in range(self.size):
             for i in range(self.size - 2, -1, -1):
                 if grid[i][j] == 0:
@@ -151,14 +168,19 @@ class Grid:
                     grid[x][j] = grid[i][j]
                     if x != i:
                         grid[i][j] = 0
+                        moved = True
                 else:
                     grid[x + 1][j] *= 2
                     self.score += grid[x + 1][j] # adding to total score
                     grid[i][j] = 0
+                    moved = True
+                    
+        return moved
             
     def move_left(self, grid = None):
         if grid is None:
             grid = self.grid
+        moved = False
         for j in range(self.size):
             for i in range(self.size):
                 if grid[i][j] == 0:
@@ -170,14 +192,19 @@ class Grid:
                     grid[i][x] = grid[i][j]
                     if x != j:
                         grid[i][j] = 0
+                        moved =True
                 else:
                     grid[i][x - 1] *= 2
                     self.score += grid[i][x - 1] # adding to total score
                     grid[i][j] = 0
+                    moved = True
+        return moved
+            
     
     def move_right(self, grid = None):
         if grid is None:
             grid = self.grid
+        moved = False
         for j in range(self.size):
             for i in range(self.size - 1, -1, -1):
                 if grid[i][j] == 0:
@@ -191,20 +218,26 @@ class Grid:
                     grid[i][x] = grid[i][j]
                     if x != j:
                         grid[i][j] = 0
+                        moved =True
                 else:
+                    
                     grid[i][x + 1] *= 2
                     self.score += grid[i][x + 1] # adding to total score
                     grid[i][j] = 0
+                    moved =True
+        return moved
+                
         
     def action(self, direction):
         if direction == 'w':
-            self.move_up()
+            return self.move_up()
         elif direction == 's':
-            self.move_down()
+            return self.move_down()
         elif direction == 'a':
-            self.move_left()
+            return self.move_left()
         elif direction == 'd':
-            self.move_right()
+            return self.move_right()
+        return self.is_full()
             
 
 if __name__ == "__main__":
