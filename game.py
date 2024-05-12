@@ -29,7 +29,6 @@ class Solver:
             elif direction == 'd':
                 self.env.move_right(grid_copy)
 
-            # Apply expectimax algorithm
             # score = self.expectimax(grid_copy, depth=2, is_chance=True)
             score = self.get_score(grid_copy)
             next_score[direction] = score
@@ -87,24 +86,26 @@ class Solver:
         """
         return (self.score_count_neighbor(grid) + self.score_mean_neighbor(grid)) / 2
 
-
-
-    def score_snake(self, grid, base_value=0.30):
-        # From https://github.com/davidluescher/2048-ai/blob/master/heuristicai.py
+    def score_snake(self, grid, base_value=0.25):
         """
         The function `score_snake` calculates the score of a game grid in a snake-like game by combining
         values from different directions.
         """
+        size = len(grid)
+        rewardArray = np.array([base_value ** i for i in range(size ** 2)])
+
         score = 0
-        rewardArray = [base_value ** i for i in range(16)]
         for i in range(2):
-            gridArray = hstack((grid[0], grid[1][::-1], grid[2], grid[3][::-1]))
-            score = max(score, (rewardArray * gridArray).sum())
-            score = max(score, (rewardArray[::-1] * gridArray).sum())
-            gridArray = hstack((grid[0][::-1], grid[1], grid[2][::-1], grid[3]))
-            score = max(score, (rewardArray * gridArray).sum())
-            score = max(score, (rewardArray[::-1] * gridArray).sum())
+            gridArray_horizontal = np.hstack(tuple(grid[j] if i % 2 == 0 else grid[j][::-1] for j in range(size)))
+            score = max(score, np.sum(rewardArray * gridArray_horizontal))
+            score = max(score, np.sum(rewardArray[::-1] * gridArray_horizontal))
+            gridArray_vertical = np.hstack(tuple(grid[j][::-1] if i % 2 == 0 else grid[j] for j in range(size)))
+            score = max(score, np.sum(rewardArray * gridArray_vertical))
+            score = max(score, np.sum(rewardArray[::-1] * gridArray_vertical))
+
+            # grid = np.rot90(grid)
             grid = grid.T
+
         return score
 
 
@@ -112,32 +113,32 @@ class Solver:
         """
         Calculate the mean(average) of  tiles with the same values that are adjacent in a row/column.
         """
-        horizontal_sum, count_horizontal = self.check_neighbor(newgrid)
-        vertical_sum, count_vertical = self.check_neighbor(newgrid.T)
+        horizontal_sum, count_horizontal = self.check_adjacent(newgrid)
+        vertical_sum, count_vertical = self.check_adjacent(newgrid.T)
         if count_horizontal == 0 or count_vertical == 0:
             return 0
-        return horizontal_sum / count_horizontal + vertical_sum / count_vertical
+        return (horizontal_sum + vertical_sum) / (count_horizontal + count_vertical)
 
 
-    def check_neighbor(self, grid):
+    def check_adjacent(self, grid):
         """
         Returns the sum and total number (count) of tiles with the same values that are adjacent in a row/column.
         """
         count = 0
-        sum = 0
+        total_sum = 0
         for row in grid:
             previous = -1
             for tile in row:
                 if previous == tile:
-                    sum += tile
+                    total_sum += tile
                     count += 1
                 previous = tile
-        return sum, count
+        return total_sum, count
 
 
     def score_count_neighbor(self, grid):
-        _, horizontal_count = self.check_neighbor(grid)
-        _, vertical_count = self.check_neighbor(grid.T)
+        _, horizontal_count = self.check_adjacent(grid)
+        _, vertical_count = self.check_adjacent(grid.T)
         return horizontal_count + vertical_count
 
 
@@ -151,7 +152,12 @@ class Solver:
 
     def get_score(self, grid):
         grid = np.array(grid)
-        return (1.5 * self.score_adjacent_tiles(grid) + 3 * self.score_snake(grid) + 2 * self.calculate_empty_tiles(grid)) / 6
+        adjacent_tiles_score = self.score_adjacent_tiles(grid)
+        snake_score = self.score_snake(grid)
+        empty_tiles = self.calculate_empty_tiles(grid)
+        total_score = (adjacent_tiles_score + 3 * snake_score + empty_tiles) / 6
+        print("Total Score: ", total_score)
+        return total_score
 
     def run(self):
         while True:
