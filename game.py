@@ -4,6 +4,7 @@ import numpy as np
 from grid import Grid
 import random
 
+import copy
 class Solver:
     def __init__(self, size):
         self.size = size
@@ -18,7 +19,8 @@ class Solver:
         next_score = {'w': 0, 's': 0, 'a': 0, 'd': 0}
 
         for direction in directions:
-            grid_copy = [row[:] for row in self.env.grid]
+            # grid_copy = [row[:] for row in self.env.grid]
+            grid_copy = copy.deepcopy(self.env.grid)
 
             if direction == 'w':
                 self.env.move_up(grid_copy)
@@ -29,15 +31,17 @@ class Solver:
             elif direction == 'd':
                 self.env.move_right(grid_copy)
 
-            # score = self.expectimax(grid_copy, depth=2, is_chance=True)
+            # score = self.expectimax(grid_copy, depth=3, is_chance=True)
             score = self.get_score(grid_copy)
             next_score[direction] = score
 
         print("Final predictions:", next_score)
-        return max(next_score.items(), key=lambda x: x[1])
+        # if all(value == 0 for value in next_score.values()):
+        #     return random.choice(list(next_score.items()))
+        return  max(next_score.items(), key=lambda x: x[1])
 
     def expectimax(self, grid, depth, is_chance):
-        if depth == 0 or self.env.is_full():
+        if depth == 1 or self.env.is_full():
             return self.get_score(grid)
 
         if is_chance:
@@ -156,7 +160,7 @@ class Solver:
         snake_score = self.score_snake(grid)
         empty_tiles = self.calculate_empty_tiles(grid)
         total_score = (adjacent_tiles_score + 3 * snake_score + empty_tiles) / 6
-        print("Total Score: ", total_score)
+        # print("Total Score: ", total_score)
         return total_score
 
     def run(self):
@@ -183,9 +187,9 @@ class Solver:
                 print("Next move should be:", best_move, "\nWith a score of:", best_score)
             self.env.flag = 1
 
-            print("\n\nEnter direction:")
+            # print("\n\nEnter direction:")
             direction = best_move
-            print(direction)
+            # print(direction)
 
             if direction == "w":
                 self.env.move_up()
